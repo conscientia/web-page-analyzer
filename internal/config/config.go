@@ -12,6 +12,10 @@ type Config struct {
 	// Server
 	Port string
 
+	// Logging
+	LogLevel  string
+	LogFormat string
+
 	// Timeouts
 	RequestTimeout   time.Duration // for entire request
 	FetchTimeout     time.Duration // for how long to wait for target page to respond
@@ -29,12 +33,16 @@ const (
 	defaultLinkCheckTimeout = 30 * time.Second
 	defaultPerLinkTimeout   = 3 * time.Second
 	defaultMaxWorkers       = 15
+	defaultLogLevel         = "debug"
+	defaultLogFormat        = "text"
 )
 
 // Load return the Config from environment variables
 func Load() (*Config, error) {
 	cfg := &Config{
 		Port:             getEnvString("PORT", defaultPort),
+		LogLevel:         getEnvString("LOG_LEVEL", defaultLogLevel),
+		LogFormat:        getEnvString("LOG_FORMAT", defaultLogFormat),
 		RequestTimeout:   getEnvDuration("REQUEST_TIMEOUT", defaultRequestTimeout),
 		FetchTimeout:     getEnvDuration("FETCH_TIMEOUT", defaultFetchTimeout),
 		LinkCheckTimeout: getEnvDuration("LINK_CHECK_TIMEOUT", defaultLinkCheckTimeout),
@@ -82,8 +90,10 @@ func (c *Config) validate() error {
 // String returns the config.
 func (c *Config) String() string {
 	return fmt.Sprintf(
-		"Config{Port:%s RequestTimeout:%s FetchTimeout:%s LinkCheckTimeout:%s PerLinkTimeout:%s MaxWorkers:%d}",
+		"Config{Port:%s LogLevel:%s LogFormat:%s RequestTimeout:%s FetchTimeout:%s LinkCheckTimeout:%s PerLinkTimeout:%s MaxWorkers:%d}",
 		c.Port,
+		c.LogLevel,
+		c.LogFormat,
 		c.RequestTimeout,
 		c.FetchTimeout,
 		c.LinkCheckTimeout,

@@ -14,6 +14,8 @@ func TestLoad_FromEnv(t *testing.T) {
 	t.Setenv("LINK_CHECK_TIMEOUT", "45s")
 	t.Setenv("PER_LINK_TIMEOUT", "5s")
 	t.Setenv("MAX_WORKERS", "20")
+	t.Setenv("LOG_LEVEL", "info")
+	t.Setenv("LOG_FORMAT", "text")
 
 	cfg, err := Load()
 	if err != nil {
@@ -28,6 +30,12 @@ func TestLoad_FromEnv(t *testing.T) {
 	}
 	if cfg.MaxWorkers != 20 {
 		t.Errorf("MaxWorkers: want 20, got %d", cfg.MaxWorkers)
+	}
+	if cfg.LogLevel != "info" {
+		t.Errorf("LogLevel: want info, got %s", cfg.LogLevel)
+	}
+	if cfg.LogFormat != "text" {
+		t.Errorf("LogFormat: want text, got %s", cfg.LogFormat)
 	}
 }
 
