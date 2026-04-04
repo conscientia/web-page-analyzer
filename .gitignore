@@ -1,0 +1,17 @@
+# binary output
+bin/
+webanalyzer
+
+# Go
+*.test
+*.out
+coverage.html
+
+# env files
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
