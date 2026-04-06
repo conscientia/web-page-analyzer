@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8090}:8090"
+    environment:
+      PORT:                 "${PORT:-8090}"
+      LOG_LEVEL:            "${LOG_LEVEL:-info}"
+      LOG_FORMAT:           "${LOG_FORMAT:-json}"
+      REQUEST_TIMEOUT:      "${REQUEST_TIMEOUT:-60s}"
+      FETCH_TIMEOUT:        "${FETCH_TIMEOUT:-10s}"
+      LINK_CHECK_TIMEOUT:   "${LINK_CHECK_TIMEOUT:-30s}"
+      PER_LINK_TIMEOUT:     "${PER_LINK_TIMEOUT:-3s}"
+      MAX_WORKERS:          "${MAX_WORKERS:-15}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/health"]
+      interval: 30s
+      timeout:  5s
+      retries:  3
+      start_period: 5s
