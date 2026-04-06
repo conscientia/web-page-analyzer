@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Page Analyzer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: arial, sans-serif;
+            font-size: 16px;
+            color: #202124;
+            background: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── input section — no longer flex:1, sits at top ── */
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 20px 28px;
+            gap: 24px;
+        }
+
+        .hero-title {
+            font-size: 26px;
+            color: #202124;
+            font-weight: 400;
+            letter-spacing: -0.3px;
+        }
+
+        .search-row {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            max-width: 580px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            padding: 10px 16px;
+            gap: 10px;
+            transition: box-shadow 0.15s;
+        }
+
+        .search-row:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+            border-color: rgba(223,225,229,0);
+        }
+
+        .search-icon {
+            color: #9aa0a6;
+            flex-shrink: 0;
+        }
+
+        .url-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #202124;
+            background: transparent;
+        }
+
+        .url-input::placeholder { color: #9aa0a6; }
+
+        .btn-analyze {
+            background: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            color: #3c4043;
+            font-size: 14px;
+            padding: 8px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .btn-analyze:hover:not(:disabled) {
+            border-color: #dadce0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ── loader ── */
+        .loader {
+            display: none;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .loader.visible { display: block; }
+
+        /* ── results section ── */
+        .results {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 0 20px 48px;
+            display: none;
+            flex-direction: column;
+        }
+
+        .results.visible { display: flex; }
+
+        /* error */
+        .error-box {
+            display: none;
+            padding: 18px;
+            border: 1px solid #d93025;
+            border-radius: 4px;
+            background: #fce8e6;
+            color: #c5221f;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .error-box.visible { display: block; }
+
+        .error-status {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+
+        /* result rows */
+        .result-header {
+            font-size: 13px;
+            color: #5f6368;
+            padding: 12px 0 10px;
+            border-bottom: 1px solid #e8eaed;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .result-row {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            padding: 14px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .result-label {
+            font-size: 14px;
+            color: #5f6368;
+            min-width: 160px;
+            flex-shrink: 0;
+        }
+
+        .result-value {
+            font-size: 16px;
+            color: #202124;
+        }
+
+        /* headings inline */
+        .headings-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .heading-item {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .heading-tag {
+            font-size: 12px;
+            color: #9aa0a6;
+        }
+
+        .heading-count {
+            font-size: 16px;
+            color: #202124;
+        }
+
+        /* links inline */
+        .links-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .link-label-sm {
+            font-size: 12px;
+            color: #9aa0a6;
+        }
+
+        .link-count {
+            font-size: 16px;
+            color: #202124;
+        }
+
+        .link-count.inaccessible { color: #d93025; }
+        .link-count.unchecked    { color: #9aa0a6; }
+
+        /* login badge */
+        .badge {
+            display: inline-block;
+            font-size: 13px;
+            padding: 3px 12px;
+            border-radius: 12px;
+        }
+
+        .badge.yes { background: #fce8e6; color: #c5221f; }
+        .badge.no  { background: #e6f4ea; color: #137333; }
+
+        /* footer */
+        footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 13px;
+            color: #9aa0a6;
+            border-top: 1px solid #f1f3f4;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── input ── -->
+<div class="hero" id="hero">
+    <span class="hero-title">Web Page Analyzer</span>
+
+    <div class="search-row">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+                id="url-input"
+                class="url-input"
+                type="url"
+                placeholder="Enter a URL to analyze"
+                autocomplete="off"
+                spellcheck="false"
+        />
+        <button class="btn-analyze" id="btn-analyze">Analyze</button>
+    </div>
+
+    <span class="loader" id="loader">Analyzing page...</span>
+</div>
+
+<!-- ── results ── -->
+<div class="results" id="results">
+
+    <div class="error-box" id="error-box">
+        <div class="error-status" id="error-status"></div>
+        <div id="error-message"></div>
+    </div>
+
+    <div id="result-rows">
+        <div class="result-header" id="result-url"></div>
+
+        <div class="result-row">
+            <span class="result-label">HTML Version</span>
+            <span class="result-value" id="val-version">—</span>
+        </div>
+
+        <div class="result-row">
+            <span class="result-label">Page Title</span>
+            <span class="result-value" id="val-title">—</span>
+        </div>
+
+        <div class="result-row">
+            <span class="result-label">Headings</span>
+            <div class="headings-row">
+                <div class="heading-item"><span class="heading-tag">H1</span><span class="heading-count" id="h1">0</span></div>
+                <div class="heading-item"><span class="heading-tag">H2</span><span class="heading-count" id="h2">0</span></div>
+                <div class="heading-item"><span class="heading-tag">H3</span><span class="heading-count" id="h3">0</span></div>
+                <div class="heading-item"><span class="heading-tag">H4</span><span class="heading-count" id="h4">0</span></div>
+                <div class="heading-item"><span class="heading-tag">H5</span><span class="heading-count" id="h5">0</span></div>
+                <div class="heading-item"><span class="heading-tag">H6</span><span class="heading-count" id="h6">0</span></div>
+            </div>
+        </div>
+
+        <div class="result-row">
+            <span class="result-label">Links</span>
+            <div class="links-row">
+                <div class="link-item"><span class="link-label-sm">Internal</span><span class="link-count" id="val-internal">0</span></div>
+                <div class="link-item"><span class="link-label-sm">External</span><span class="link-count" id="val-external">0</span></div>
+                <div class="link-item"><span class="link-label-sm">Inaccessible</span><span class="link-count inaccessible" id="val-inaccessible">0</span></div>
+                <div class="link-item"><span class="link-label-sm">Unchecked</span><span class="link-count unchecked" id="val-unchecked">0</span></div>
+            </div>
+        </div>
+
+        <div class="result-row">
+            <span class="result-label">Login Form</span>
+            <span class="badge" id="val-login">—</span>
+        </div>
+    </div>
+
+</div>
+
+<footer id="footer-text"></footer>
+
+<script>
+    const urlInput   = document.getElementById('url-input');
+    const btnAnalyze = document.getElementById('btn-analyze');
+    const loader     = document.getElementById('loader');
+    const results    = document.getElementById('results');
+    const errorBox   = document.getElementById('error-box');
+    const resultRows = document.getElementById('result-rows');
+
+    function setLoading(on) {
+        loader.classList.toggle('visible', on);
+        btnAnalyze.disabled = on;
+    }
+
+    function showError(status, message) {
+        results.classList.add('visible');
+        errorBox.classList.add('visible');
+        resultRows.style.display = 'none';
+        document.getElementById('error-status').textContent =
+            status ? `Error ${status}` : 'Error';
+        document.getElementById('error-message').textContent = message;
+    }
+
+    function showResult(data, durationMs) {
+        results.classList.add('visible');
+        errorBox.classList.remove('visible');
+        resultRows.style.display = '';
+
+        document.getElementById('result-url').textContent = data.url;
+        document.getElementById('val-version').textContent = data.html_version || '—';
+        document.getElementById('val-title').textContent   = data.title || '(no title)';
+
+        ['h1','h2','h3','h4','h5','h6'].forEach(tag => {
+            document.getElementById(tag).textContent = data.headings[tag] ?? 0;
+        });
+
+        document.getElementById('val-internal').textContent     = data.links.internal;
+        document.getElementById('val-external').textContent     = data.links.external;
+        document.getElementById('val-inaccessible').textContent = data.links.inaccessible;
+        document.getElementById('val-unchecked').textContent    = data.links.unchecked;
+
+        const loginEl = document.getElementById('val-login');
+        loginEl.textContent = data.has_login_form ? 'Detected' : 'Not found';
+        loginEl.className   = `badge ${data.has_login_form ? 'yes' : 'no'}`;
+
+        document.getElementById('footer-text').textContent =
+            `Completed in ${(durationMs / 1000).toFixed(2)}s`;
+    }
+
+    async function analyze() {
+        const url = urlInput.value.trim();
+        if (!url) { urlInput.focus(); return; }
+
+        setLoading(true);
+        const start = Date.now();
+
+        try {
+            const resp = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
+            });
+
+            const data = await resp.json();
+            const duration = Date.now() - start;
+
+            if (!resp.ok) {
+                showError(data.status_code || resp.status, data.message || 'Unknown error');
+            } else {
+                showResult(data, duration);
+            }
+        } catch (err) {
+            showError(null, `Network error: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    btnAnalyze.addEventListener('click', analyze);
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+</script>
+
+</body>
+</html>
